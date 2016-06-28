@@ -1,7 +1,8 @@
-gulp-jasmine-phantom
+gulp-jasmine-phantom-requirejs
 =============
 
-A gulp plugin that runs Jasmine tests with either PhantomJS or minijasminenode2.
+A gulp plugin that runs Jasmine tests with PhantomJS.
+Both specs and tested units must be amd modules
 
 Dependencies
 ------------
@@ -10,7 +11,7 @@ This module uses `execSync` which is not available in any version of Node under 
 If you have any specific concerns about upgrading versions of Node or reasons not use
 `execSync` feel free to open an issue!
 
-Before you install `gulp-jasmine-phantom` please ensure that you have PhantomJS
+Before you install `gulp-jasmine-phantom-requirejs` please ensure that you have PhantomJS
 installed on your machine. The plugin assumes that the `phantomjs` binary is
 available in the PATH and executable from the command line.
 
@@ -25,67 +26,29 @@ Install
 -----
 
 ```
-$ npm install --save-dev gulp-jasmine-phantom
+$ npm install --save-dev gulp-jasmine-phantom-requirejs
 ```
 
 Usage
 -----
-By default, `gulp-jasmine-phantom` runs your tests with `minijasminenode` and
-not `phantomjs`.
-This is an effort to keep your tasks running as quickly as possible!
-
 Basic usage:
 ```javascript
 var gulp = require('gulp');
-var jasmine = require('gulp-jasmine-phantom');
+var jasmine = require('gulp-jasmine-phantom-requirejs');
 
 gulp.task('default', function () {
   return gulp.src('spec/test.js')
-          .pipe(jasmine());
-});
-```
-To use `phantomjs` for tests (ie: integration tests) use the following setup:
-
-```javascript
-var gulp = require('gulp');
-var jasmine = require('gulp-jasmine-phantom');
-
-gulp.task('default', function() {
-  return gulp.src('spec/test.js')
           .pipe(jasmine({
-            integration: true
-          }));
-});
-```
-
-Also, remember you can always run any multitude of tests using different Gulp
-tasks. For example, running unit tests and integration tests asynchronously.
-
-```javascript
-var gulp = require('gulp');
-var jasmine = require('gulp-jasmine-phantom');
-
-gulp.task('unitTests', function () {
-  return gulp.src('spec/test.js')
-          .pipe(jasmine());
-});
-
-gulp.task('integrationTests', function() {
-  return gulp.src('spec/test.js')
-          .pipe(jasmine({
-            integration: true
+            vendor: [
+              'node_modules/requirejs/require.js'
+            ],
+            abortOnFail: true
           }));
 });
 ```
 
 Options
 -------
-
-#### integration
-Type: `boolean` <br />
-Default: false
-
-Run your tests with `phantomjs`
 
 #### keepRunner
 Type: `boolean | string` <br />
@@ -104,29 +67,26 @@ Prints out a longer stack trace for errors.
 Type: `boolean` <br />
 Default: false
 
-**Currently built with integration mode only** <br />
 Exits Gulp with an status of 1 that will halt any further Gulp tasks.
 
 #### specHtml
 Type: `string` <br />
 Default: null
 
-**Only use in combination with `integration: true`**
-
-Allows you to specify the HTML runner that Jasmine uses **only** during
-integration tests.
+Allows you to specify the HTML runner that Jasmine uses during tests.
 
 #### vendor
 Type: `string | array` <br />
 Default: null
+
+Allows to load scripts before testing process.
+** require.js must be specified here **
 
 #### runner
 Type: `string` <br />
 Default: '/lib/jasmine-runner.js'
 
 Allows you to specify the javascript runner that jasmine uses when running tests.
-
-**Only use in combination with `integration: true`**
 
 A list of vendor scripts to import into the HTML runner, either as file
 globs (e.g. `"**/*.js"`) or fully-qualified URLs (e.g.
@@ -135,33 +95,11 @@ globs (e.g. `"**/*.js"`) or fully-qualified URLs (e.g.
 This option accepts either a single string or an array of strings (e.g.
 `["test/*.js", "http://my.cdn.com/underscore.js"]`).
 
-#### jasmineVersion (integration tests only)
+#### jasmineVersion
 Type: `string` <br />
 Default: '2.0'
 
-**Only use in combination with `integration: true`**
-
 Specifies the version of Jasmine you want to run. Possible options are in the `vendor/` folder. Just specify what `2.x` minor release you want.
-
-#### random (unit tests only)
-Type: 'boolean'<br />
-Default: false
-
-Allows you to run the unit tests in a semi-random order. The random seed will be printed out after the tests have completed to allow for easier debugging.
-
-#### reporter
-Type: `object`<br />
-Default: './lib/terminal-reporter.js'
-
-Allows you to specify a custom reporter (e.g.
-  `"reporter": require('jasmine-spec-reporter')`)
-
-This reporter will also pull in options from `gulpOptions`.
-
-#### seed (unit tests only)
-Type: 'number'<br />
-
-Provides a given seed to Jasmine to run the tests in.
 
 Technologies Used
 -----------------
