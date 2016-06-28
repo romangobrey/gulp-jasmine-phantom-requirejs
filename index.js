@@ -6,8 +6,8 @@ var _ = require('lodash'),
     glob = require('glob'),
     gutil = require('gulp-util'),
     handlebar = require('handlebars'),
-    Jasmine = require('jasmine'),
     path = require('path'),
+    serialize = require('serialize-javascript'),
     through = require('through2');
 
 /*
@@ -74,13 +74,13 @@ function execPhantom(phantom, childArguments, onComplete) {
     var success = null;
 
     if(error !== null) {
-      success = new gutil.PluginError('gulp-jasmine-phantomjs', error.code + ': Tests contained failures. Check logs for details.');
+      success = new gutil.PluginError('gulp-jasmine-phantom-requirejs', error.code + ': Tests contained failures. Check logs for details.');
     }
 
     if (stderr !== '') {
-      gutil.log('gulp-jasmine-phantom: Failed to open test runner ' + gutil.colors.blue(childArguments[1]));
+      gutil.log('gulp-jasmine-phantom-requirejs: Failed to open test runner ' + gutil.colors.blue(childArguments[1]));
       gutil.log(gutil.colors.red('error: '), stderr);
-      success = new gutil.PluginError('gulp-jasmine-phantomjs', 'Failed to open test runner ' + gutil.colors.blue(childArguments[1]));
+      success = new gutil.PluginError('gulp-jasmine-phantom-requirejs', 'Failed to open test runner ' + gutil.colors.blue(childArguments[1]));
     }
 
     if(gulpOptions.specHtml === undefined && (gulpOptions.keepRunner === undefined || gulpOptions.keepRunner === false)) {
@@ -102,7 +102,7 @@ function runPhantom(childArguments, onComplete) {
   if(hasGlobalPhantom()) {
     execPhantom(phantomExecutable, childArguments, onComplete);
   } else {
-    gutil.log(gutil.colors.yellow('gulp-jasmine-phantom: Global Phantom undefined, trying to execute from node_modules/phantomjs'));
+    gutil.log(gutil.colors.yellow('gulp-jasmine-phantom-requirejs: Global Phantom undefined, trying to execute from node_modules/phantomjs'));
     execPhantom(process.cwd() + '/node_modules/.bin/' + phantomExecutable, childArguments, onComplete);
   }
 }
@@ -162,7 +162,8 @@ function compileRunner(options) {
         jasmineCss: fixupPath(jasmineCss),
         jasmineJs: jasmineJs.map(fixupPath),
         vendorJs: vendorJs.map(fixupPath),
-        specRunner: fixupPath(specRunner)
+        specRunner: fixupPath(specRunner),
+        requireConfig: serialize(gulpOptions.requireConfig)
       });
 
     if(gulpOptions.keepRunner !== undefined && typeof gulpOptions.keepRunner === 'string') {
@@ -174,16 +175,13 @@ function compileRunner(options) {
         throw error;
       }
 
-      if (gulpOptions.integration) {
         var childArgs = [
           options.runner,
           specHtml,
-          JSON.stringify(gulpOptions)
+          JSON.stringify(_.pick(gulpOptions, ['abortOnFail'])),
+          '--web-security=no'
         ];
         runPhantom(childArgs, onComplete);
-      } else {
-        onComplete(null);
-      }
     });
   });
 }
@@ -195,7 +193,6 @@ module.exports = function (options) {
 
   configJasmine(gulpOptions.jasmineVersion);
 
-  if(!!gulpOptions.integration) {
     return through.obj(
       function (file, encoding, callback) {
         if (file.isNull()) {
@@ -203,7 +200,7 @@ module.exports = function (options) {
           return;
         }
         if (file.isStream()) {
-          callback(new gutil.PluginError('gulp-jasmine-phantom', 'Streaming not supported'));
+          callback(new gutil.PluginError('gulp-jasmine-phantom-requirejs', 'Streaming not supported'));
           return;
         }
         filePaths.push(file.path);
@@ -231,67 +228,8 @@ module.exports = function (options) {
             });
           }
         } catch(error) {
-          callback(new gutil.PluginError('gulp-jasmine-phantom', error));
+          callback(new gutil.PluginError('gulp-jasmine-phantom-requirejs', error));
         }
       }
     );
-  }
-
-  return through.obj(
-    function(file, encoding, callback) {
-      if (file.isNull()) {
-        callback(null, file);
-        return;
-      }
-
-      if (file.isStream()) {
-        callback(new gutil.PluginError('gulp-jasmine-phantom', 'Streaming not supported'));
-        return;
-      }
-
-      /**
-      * Get the cache object of the specs.js file,
-      * get its children and delete the childrens cache
-      */
-      var modId = require.resolve(path.resolve(file.path));
-      var files = require.cache[modId];
-      if (typeof files !== 'undefined') {
-        for (var i in files.children) {
-          delete require.cache[files.children[i].id];
-        }
-      }
-      delete require.cache[modId];
-
-      filePaths.push(path.relative(process.cwd(), file.path));
-      callback(null, file);
-    },
-    function(callback) {
-      gutil.log('Running Jasmine in Node');
-      try {
-        var jasmine = new Jasmine(),
-            Reporter = gulpOptions.reporter || require('./lib/terminal-reporter.js').TerminalReporter;
-
-        jasmine.addReporter(new Reporter(_.defaults(gulpOptions, {showColors: true})));
-
-        jasmine.loadConfig({
-          random: _.get(gulpOptions, 'random', false),
-          spec_files: filePaths
-        });
-
-        if (_.has(gulpOptions, 'seed')) {
-          jasmine.seed(gulpOptions.seed);
-        }
-
-        jasmine.onComplete(function(passed) {
-          callback(null);
-        });
-
-        jasmine.execute();
-
-      } catch(error) {
-        callback(new gutil.PluginError('gulp-jasmine-phantom', error));
-      }
-
-    }
-  );
 };

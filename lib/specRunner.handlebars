@@ -1,19 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset='utf-8'>
-<link rel="stylesheet" type="text/css" href="{{jasmineCss}}" />
-{{#each jasmineJs}}
-  <script type="text/javascript" src="{{this}}"></script>
-{{/each}}
-{{#each vendorJs}}
-  <script type="text/javascript" src="{{this}}"></script>
-{{/each}}
-{{#each files}}
-  <script type="text/javascript" src="{{this}}"></script>
-{{/each}}
-
-<script type="text/javascript" src="{{specRunner}}"></script>
+    <meta charset='utf-8'>
+    <link rel="stylesheet" type="text/css" href="{{jasmineCss}}"/>
+    {{#each jasmineJs}}
+        <script type="text/javascript" src="{{this}}"></script>
+    {{/each}}
+    {{#each vendorJs}}
+        <script type="text/javascript" src="{{this}}"></script>
+    {{/each}}
+    <script type="text/javascript">
+        require.config({{{requireConfig}}});
+        require([
+            {{#each files}}
+            "{{this}}",
+            {{/each}}
+            "{{specRunner}}"
+        ], function () {
+            window.onload();
+        });
+    </script>
 </head>
 <body>
 
