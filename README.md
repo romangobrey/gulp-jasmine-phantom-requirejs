@@ -2,7 +2,7 @@ gulp-jasmine-phantom-requirejs
 =============
 
 A gulp plugin that runs Jasmine tests with PhantomJS.
-Both specs and tested units must be amd modules
+Both specs and tested units must be amd modules.
 
 Dependencies
 ------------
