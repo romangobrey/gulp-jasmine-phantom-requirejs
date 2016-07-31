@@ -42,7 +42,22 @@ gulp.task('default', function () {
             vendor: [
               'node_modules/requirejs/require.js'
             ],
-            abortOnFail: true
+            abortOnFail: true,
+            requireConfig': {
+              baseUrl: 'src/js',
+              shim: {
+                'bootstrap': ['jquery'],
+                'scrollup': ['jquery'],
+                'node-diff-match-patch': {
+                    init: function () {
+                        return new this.diff_match_patch();
+                    }
+                },
+              },
+              paths: {
+                'bootstrap': 'node_modules/bootstrap/dist/js/bootstrap',
+                'node-diff-match-patch': 'node_modules/node-diff-match-patch/diff_match_patch'
+              }
           }));
 });
 ```
@@ -80,7 +95,6 @@ Type: `string | array` <br />
 Default: null
 
 Allows to load scripts before testing process.
-** require.js must be specified here **
 
 #### runner
 Type: `string` <br />
@@ -100,6 +114,29 @@ Type: `string` <br />
 Default: '2.0'
 
 Specifies the version of Jasmine you want to run. Possible options are in the `vendor/` folder. Just specify what `2.x` minor release you want.
+
+#### requireConfig
+Type: `Object` <br/>
+
+Config for requirejs. All paths will be resolved relative to working dir and dirs specified in `serverRoots`.
+
+#### serverRoots
+Type: `Array` <br/>
+Default: []
+
+List of additional directories with sources. Files from specRunner will be firstly searched in these paths.
+
+#### justServer
+Type: `boolean` <br/>
+Default: false
+
+Runs server to be tested in browser, skipping running in PhantomJS.
+
+#### port
+Type: `number` <br/>
+Default: auto detected free port
+
+TCP port for spec server
 
 Technologies Used
 -----------------

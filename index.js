@@ -9,6 +9,7 @@ var _ = require('lodash'),
     handlebar = require('handlebars'),
     mime = require('mime'),
     path = require('path'),
+    portfinder = require('portfinder'),
     serialize = require('serialize-javascript'),
     favicon = require('serve-favicon'),
     through = require('through2');
@@ -251,7 +252,7 @@ module.exports = function (options) {
     gulpOptions = options || {};
 
     serverRoots = _.union([''], gulpOptions.serverRoots);
-    serverPort = gulpOptions.port || 8888;
+    serverPort = gulpOptions.port;
 
     configJasmine(gulpOptions.jasmineVersion);
 
@@ -268,31 +269,48 @@ module.exports = function (options) {
             filePaths.push(file.path);
             callback(null, file);
         }, function (callback) {
-        try {
-            var runner = gulpOptions.runner || path.join(__dirname, '/lib/jasmine-runner.js');
-            if (gulpOptions.specHtml) {
-                runTesting(
-                    [
-                        runner,
-                        'http://localhost:' + serverPort,
-                        JSON.stringify(gulpOptions)
-                    ],
-                    path.resolve(gulpOptions.specHtml),
-                    function (success) {
-                        callback(success);
+
+            function proceedRunner(port) {
+                serverPort = port;
+                
+                if (gulpOptions.specHtml) {
+                    runTesting(
+                        [
+                            runner,
+                            'http://localhost:' + serverPort,
+                            JSON.stringify(gulpOptions)
+                        ],
+                        path.resolve(gulpOptions.specHtml),
+                        function (success) {
+                            callback(success);
+                        });
+                } else {
+                    compileRunner({
+                        files: filePaths,
+                        onComplete: function (success) {
+                            callback(success);
+                        },
+                        runner: runner
                     });
-            } else {
-                compileRunner({
-                    files: filePaths,
-                    onComplete: function (success) {
-                        callback(success);
-                    },
-                    runner: runner
-                });
+                }
             }
-        } catch (error) {
-            callback(new gutil.PluginError('gulp-jasmine-phantom-requirejs', error));
-        }
-    }
-    );
+
+            try {
+                var runner = gulpOptions.runner || path.join(__dirname, '/lib/jasmine-runner.js');
+
+                if (_.isNumber(serverPort)) {
+                    proceedRunner(serverPort);
+                } else {
+                    portfinder.getPort(function(err, port){
+                        if (err) {
+                            callback(new gutil.PluginError('gulp-jasmine-phantom-requirejs', err));
+                        } else {
+                            proceedRunner(port);
+                        }
+                    });
+                }
+            } catch (error) {
+                callback(new gutil.PluginError('gulp-jasmine-phantom-requirejs', error));
+            }
+        });
 };
