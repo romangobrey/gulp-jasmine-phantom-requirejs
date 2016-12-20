@@ -90,7 +90,7 @@ function execPhantom (phantom, childArguments, onComplete) {
         }
 
         if (gulpOptions.specHtml === undefined && (gulpOptions.keepRunner === undefined || gulpOptions.keepRunner === false)) {
-            cleanup(childArguments[1]);
+            cleanup(specHtml);
         }
 
         console.log(stdout);
